@@ -1,0 +1,1866 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/SuryaGona/SuryaGona/blob/main/notsure\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Gbe5KqWcISTq"
+      },
+      "source": [
+        "import random\n",
+        "import heapq"
+      ],
+      "execution_count": 204,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "PHnbnN2uV8zr"
+      },
+      "source": [
+        "# Tile Sliding Domain: Initial State Space"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jPCNOa4W-5yq"
+      },
+      "source": [
+        "StateDimension=4\n",
+        "InitialState = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]\n",
+        "GoalState=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]\n",
+        "Actions = lambda s: ['u', 'd', 'l', 'r']\n",
+        "Opposite=dict([('u','d'),('d','u'),('l','r'),('r','l'), (None, None)])"
+      ],
+      "execution_count": 205,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "XjnzkkC8_HE8"
+      },
+      "source": [
+        "def Result(state, action):\n",
+        "  i = state.index(0)\n",
+        "  newState = list(state)\n",
+        "  row,col=i//StateDimension, i % StateDimension\n",
+        "  if ( (action=='u' and row==0) or\n",
+        "       (action=='d' and row==StateDimension-1) or\n",
+        "       (action=='l' and col==0) or\n",
+        "       (action=='r' and col==StateDimension-1)):\n",
+        "      return newState\n",
+        "  if action=='u':\n",
+        "    l,r = row*StateDimension+col, (row-1)*StateDimension+col\n",
+        "  elif action=='d':\n",
+        "    l,r = row*StateDimension+col, (row+1)*StateDimension+col\n",
+        "  elif action=='l':\n",
+        "    l,r = row*StateDimension+col, row*StateDimension+col-1\n",
+        "  elif action=='r' :\n",
+        "    l,r = row*StateDimension+col, row*StateDimension+col+1\n",
+        "  newState[l], newState[r] = newState[r], newState[l]\n",
+        "  return newState\n",
+        "\n",
+        "def PrintState(s):\n",
+        "  for i in range(0,len(s),StateDimension):\n",
+        "    print(s[i:i+StateDimension])\n",
+        "\n",
+        "def LegalMove(state, action):\n",
+        "  i = state.index(0)\n",
+        "  row,col=i//StateDimension, i % StateDimension\n",
+        "  newState = state.copy()\n",
+        "  if ( (action=='u' and row==0) or\n",
+        "       (action=='d' and row==StateDimension-1) or\n",
+        "       (action=='l' and col==0) or\n",
+        "       (action=='r' and col==StateDimension-1)):\n",
+        "      return False\n",
+        "  return True\n"
+      ],
+      "execution_count": 206,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4z6hE5HsNwHf"
+      },
+      "source": [
+        "def SingleTileManhattanDistance(tile, left, right):\n",
+        "  leftIndex = left.index(tile)\n",
+        "  rightIndex = right.index(tile)\n",
+        "  return (abs(leftIndex//StateDimension-rightIndex//StateDimension) +\n",
+        "          abs(leftIndex%StateDimension-rightIndex%StateDimension))\n",
+        "\n",
+        "def ManhattanDistance(left, right):\n",
+        "  distances = [SingleTileManhattanDistance(tile, left, right)\n",
+        "     for tile in range(1, StateDimension**2)]\n",
+        "  ### print (\"Distances= \", distances)\n",
+        "  return sum(distances)\n"
+      ],
+      "execution_count": 207,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7PE_gAdLSY_z"
+      },
+      "source": [
+        "def OutOfPlace(left, right):\n",
+        "  distances = [left[i]!=right[i] and right[i] != 0\n",
+        "     for i in range(StateDimension**2)]\n",
+        "  return sum(distances)"
+      ],
+      "execution_count": 208,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "bE7MrTAI_t6i",
+        "outputId": "082e52ef-9863-4d64-da75-a8c7a54a8c42"
+      },
+      "source": [
+        "PrintState(InitialState)"
+      ],
+      "execution_count": 209,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "wRULKFeXVcp3",
+        "outputId": "4ed44e45-6378-4aa9-d442-b7108df2396c"
+      },
+      "source": [
+        "PrintState(GoalState)"
+      ],
+      "execution_count": 210,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Ke12RA7cPaS9",
+        "outputId": "05444248-293a-43b8-c35c-8d072eb2934f"
+      },
+      "source": [
+        "print(\"ManhattanDistance=  \", ManhattanDistance(InitialState, GoalState))\n",
+        "print(\"OutOfPlace= \", OutOfPlace(InitialState, GoalState))\n"
+      ],
+      "execution_count": 211,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "ManhattanDistance=   0\n",
+            "OutOfPlace=  0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "j-EYW_gqGZtl",
+        "outputId": "f7c229b0-69c1-4c9a-af1e-39ea411274e2"
+      },
+      "source": [
+        "PrintState(InitialState)\n",
+        "print()\n",
+        "state1 = Result(InitialState, 'u')\n",
+        "PrintState(state1)\n",
+        "print()\n",
+        "state1 = Result(state1, 'r')\n",
+        "PrintState(state1)"
+      ],
+      "execution_count": 212,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n",
+            "\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 0]\n",
+            "[13, 14, 15, 12]\n",
+            "\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 0]\n",
+            "[13, 14, 15, 12]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Mp0tnomdTFoC"
+      },
+      "source": [
+        "# Random Walk\n",
+        "\n",
+        "Take some random moves from a state and return the new state and the sequence of moves.\n",
+        "\n",
+        "Do not include moves undoing last move, or having no effect."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1RVh0-S9IFiy"
+      },
+      "source": [
+        "def RandomWalk(state, steps):\n",
+        "  actionSequence = []\n",
+        "  actionLast = None\n",
+        "  for i in range(steps):\n",
+        "    action = None\n",
+        "    while action==None:\n",
+        "      action = random.choice(Actions(state))\n",
+        "      action = action if (LegalMove(state, action)\n",
+        "          and action!= Opposite[actionLast]) else None\n",
+        "    actionLast = action\n",
+        "    state = Result(state, action)\n",
+        "    actionSequence.append(action)\n",
+        "  return state, actionSequence\n",
+        "\n"
+      ],
+      "execution_count": 213,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "wcn5POkxKlER",
+        "outputId": "2bce5428-1212-49fb-e421-16e47948d624"
+      },
+      "source": [
+        "state1, sol = RandomWalk(InitialState, 150)\n",
+        "PrintState(state1)\n",
+        "print (ManhattanDistance(state1, GoalState), sol)\n",
+        "\n",
+        "state1, sol = RandomWalk(InitialState, 5)\n",
+        "PrintState(InitialState)\n",
+        "print (sol)\n",
+        "PrintState(state1)"
+      ],
+      "execution_count": 214,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[7, 5, 6, 8]\n",
+            "[14, 0, 2, 1]\n",
+            "[9, 15, 13, 12]\n",
+            "[3, 10, 4, 11]\n",
+            "34 ['u', 'l', 'l', 'd', 'l', 'u', 'r', 'd', 'l', 'u', 'u', 'u', 'r', 'd', 'l', 'd', 'r', 'd', 'l', 'u', 'r', 'r', 'u', 'u', 'l', 'l', 'd', 'r', 'u', 'l', 'd', 'd', 'd', 'r', 'u', 'l', 'd', 'r', 'r', 'u', 'l', 'l', 'u', 'u', 'r', 'd', 'd', 'l', 'd', 'r', 'r', 'u', 'u', 'r', 'u', 'l', 'l', 'd', 'd', 'd', 'r', 'r', 'u', 'u', 'u', 'l', 'd', 'l', 'd', 'r', 'r', 'd', 'l', 'l', 'u', 'l', 'd', 'r', 'r', 'r', 'u', 'u', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'd', 'r', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'd', 'l', 'u', 'l', 'u', 'r', 'u', 'l', 'd', 'r', 'u', 'r', 'r', 'd', 'd', 'd', 'l', 'u', 'l', 'u', 'u', 'l', 'd', 'r', 'd', 'l', 'u', 'r', 'd', 'r', 'r', 'd', 'l', 'u', 'r', 'u', 'l', 'u', 'r', 'd', 'l', 'l', 'l', 'u', 'r', 'r', 'r', 'd', 'l', 'u', 'l', 'd']\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n",
+            "['l', 'l', 'l', 'u', 'r']\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[10, 0, 11, 12]\n",
+            "[9, 13, 14, 15]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Rc_8ohYvNIq-"
+      },
+      "source": [
+        "def ApplyMoves(actions, state):\n",
+        "  for action in actions:\n",
+        "    state = Result(state, action)\n",
+        "  return state"
+      ],
+      "execution_count": 215,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Wv7MGqh8NXqy",
+        "outputId": "bfb90e44-1e7f-4c74-e7d8-483291bd3280"
+      },
+      "source": [
+        "PrintState(InitialState)\n",
+        "print(['r','r'])\n",
+        "PrintState(ApplyMoves(['r','r'],InitialState))"
+      ],
+      "execution_count": 216,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n",
+            "['r', 'r']\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_VS2KzQbOHlO"
+      },
+      "source": [
+        "def ReverseMoves(actions):\n",
+        "  ret = [Opposite[a] for a in actions]\n",
+        "  ret.reverse()\n",
+        "  return ret"
+      ],
+      "execution_count": 217,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "tp_pqYBXOsqS",
+        "outputId": "9566511a-7e10-41fb-f47c-ed0a9f085cd6"
+      },
+      "source": [
+        "state1, sol = RandomWalk(GoalState, 5)\n",
+        "PrintState(state1)\n",
+        "print (sol)\n",
+        "print(ReverseMoves(sol))\n",
+        "PrintState (ApplyMoves(ReverseMoves(sol), state1))\n"
+      ],
+      "execution_count": 218,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[1, 2, 7, 3]\n",
+            "[5, 6, 0, 4]\n",
+            "[9, 10, 11, 8]\n",
+            "[13, 14, 15, 12]\n",
+            "['u', 'u', 'u', 'l', 'd']\n",
+            "['u', 'r', 'd', 'd', 'd']\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "8ABBDMJLROdo"
+      },
+      "source": [
+        "## Problem Class\n",
+        "\n",
+        "INITIAL = InitialState  \n",
+        "IsGoal = Goal Test  \n",
+        "Actions = Actions List  \n",
+        "Result = Action Behavior  \n",
+        "ActionCost = Action Cost  "
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "fo6sq7myRQpE"
+      },
+      "source": [
+        "class Problem(object): pass"
+      ],
+      "execution_count": 219,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "aAHXlWteQ2LN"
+      },
+      "source": [
+        "## Node"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "URRYlfS9Q3vx"
+      },
+      "source": [
+        "class Node(object):\n",
+        "  def __init__(self, state, parent=None, action=None, path_cost=0 ):\n",
+        "    self.State=state\n",
+        "    self.Parent=parent\n",
+        "    self.Action=action\n",
+        "    self.PathCost = path_cost\n",
+        "\n",
+        "  def __str__(self):\n",
+        "    action = \"<none>\" if not self.Action else self.Action\n",
+        "    return str(self.State) + \", \" + action\n",
+        "  def __repr__(self):\n",
+        "    action = \"<none>\" if not self.Action else self.Action\n",
+        "    return str(self.State) + \", \" + action\n",
+        "  def __lt__(self, other):\n",
+        "    return self.PathCost < other.PathCost;"
+      ],
+      "execution_count": 220,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "LpzKnx4rkxL9"
+      },
+      "source": [
+        "## Expand"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "CRj9UnyHdDo_"
+      },
+      "source": [
+        "def Expand(problem, node):\n",
+        "  ret = []\n",
+        "  s = node.State\n",
+        "  for action in problem.Actions(s):\n",
+        "    sPrime = problem.Result(s, action)\n",
+        "    cost =node.PathCost + problem.ActionCost(s,action,sPrime)\n",
+        "    ret.append(Node(sPrime, node, action, cost))\n",
+        "  return ret\n"
+      ],
+      "execution_count": 221,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Ee2ZYxjVlBSl"
+      },
+      "source": [
+        "## Breadth-First Search"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "DZoCxoGzkt4E"
+      },
+      "source": [
+        "def BreadthFirstSearch(problem):\n",
+        "  node = Node(tuple(problem.INITIAL))\n",
+        "  if problem.IsGoal(node.State):\n",
+        "    return node, 0\n",
+        "  Frontier = []\n",
+        "  Frontier.append(node)\n",
+        "  reached = set()\n",
+        "  reached.add(tuple(problem.INITIAL))\n",
+        "  nodesExpanded = 0\n",
+        "  while (Frontier):\n",
+        "    ### print([str(n) for n in Frontier])\n",
+        "    node = Frontier.pop(0)\n",
+        "    ### print(node)\n",
+        "    for child in Expand(problem, node):\n",
+        "      s = tuple(child.State)\n",
+        "      ### print (s, \"IsGoal=\", problem.IsGoal(s))\n",
+        "      if problem.IsGoal(s):\n",
+        "        return child, nodesExpanded\n",
+        "      if s not in reached:\n",
+        "        reached.add(s)\n",
+        "        Frontier.append(child)\n",
+        "    nodesExpanded += 1\n",
+        "    if nodesExpanded > 500000:\n",
+        "      break;\n",
+        "  return None, nodesExpanded"
+      ],
+      "execution_count": 222,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "AoX48XG6lFOf"
+      },
+      "source": [
+        "## Best-First Search"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lUIAdr_qa1KT"
+      },
+      "source": [
+        "def BestFirstSearch(problem, f):\n",
+        "  node = Node(tuple(problem.INITIAL))\n",
+        "  Frontier = []\n",
+        "  heapq.heappush(Frontier,(f(node), node))\n",
+        "  reached = {}\n",
+        "  reached[tuple(problem.INITIAL)]=node\n",
+        "  nodesExpanded = 0\n",
+        "  while (Frontier):\n",
+        "    ##print([(x, str(n)) for (x,n) in Frontier])\n",
+        "    fValue, node = heapq.heappop(Frontier)\n",
+        "    ##print (node.State, \"IsGoal=\", problem.IsGoal(tuple(node.State)))\n",
+        "    if problem.IsGoal(tuple(node.State)):\n",
+        "      return node, nodesExpanded    ### print(node)\n",
+        "    for child in Expand(problem, node):\n",
+        "      s = tuple(child.State)\n",
+        "      if s not in reached or child.PathCost < reached[s].PathCost:\n",
+        "        reached[s] = child\n",
+        "        heapq.heappush(Frontier, (f(child), child))\n",
+        "    nodesExpanded += 1\n",
+        "    if nodesExpanded > 500000:\n",
+        "      break;\n",
+        "  return None, nodesExpanded"
+      ],
+      "execution_count": 223,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "kRjolRYslOa4"
+      },
+      "source": [
+        "## Problem 1"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "dLWDIbmsRGY3",
+        "outputId": "1ddf808c-8d25-4ecc-c3df-def7135ace53"
+      },
+      "source": [
+        "TileSliding = Problem()\n",
+        "TileSliding.INITIAL = InitialState\n",
+        "TileSliding.IsGoal = lambda s: s==(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0)\n",
+        "TileSliding.Actions = Actions\n",
+        "TileSliding.Result=Result\n",
+        "TileSliding.ActionCost = lambda s, a, sPrime: 1\n",
+        "print( TileSliding.IsGoal((1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0)) )\n",
+        "print( Node(InitialState) )\n",
+        "print(1+TileSliding.ActionCost(1,2,3))"
+      ],
+      "execution_count": 224,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "True\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], <none>\n",
+            "2\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6VoIEO4c1gHz",
+        "outputId": "c0814d7d-588e-47df-987f-bfcce1e57c03"
+      },
+      "source": [
+        "TileSliding.INITIAL = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]\n",
+        "ret, cost = BreadthFirstSearch(TileSliding)\n",
+        "print (ret, cost)"
+      ],
+      "execution_count": 225,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0), <none> 0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3hsBKY7Fle3w"
+      },
+      "source": [
+        "def Solution(node):\n",
+        "  if node.Parent==None:\n",
+        "    return []\n",
+        "  return Solution(node.Parent) + [node.Action]\n"
+      ],
+      "execution_count": 226,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rtr7Vr84NAfY",
+        "outputId": "9e71a399-e538-4282-e5d8-1c3332f21b15"
+      },
+      "source": [
+        "sol = Solution(ret)\n",
+        "print (sol)\n",
+        "print (TileSliding.INITIAL)\n",
+        "print (ApplyMoves(sol, TileSliding.INITIAL))"
+      ],
+      "execution_count": 227,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "RDE3dNP8NOU7",
+        "outputId": "3cfd17dd-a860-4ee7-b18e-704110870922"
+      },
+      "source": [
+        "TileSliding.INITIAL = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]\n",
+        "ret, cost = BreadthFirstSearch(TileSliding)\n",
+        "print (ret, cost)"
+      ],
+      "execution_count": 228,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0), <none> 0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "YBkLupiYNyZ_",
+        "outputId": "74a1e1a1-d848-4747-f7cd-1d95469d9bc8"
+      },
+      "source": [
+        "sol = Solution(ret)\n",
+        "print (sol)\n",
+        "print (TileSliding.INITIAL)\n",
+        "print (ApplyMoves(sol, TileSliding.INITIAL))"
+      ],
+      "execution_count": 229,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "GXdlMLxwhxMF",
+        "outputId": "3c7cf3b2-b743-4c58-f25e-c910937d80c1"
+      },
+      "source": [
+        "UniformCostF = lambda n: n.PathCost\n",
+        "AStarF = lambda n: n.PathCost+ManhattanDistance(n.State, GoalState)\n",
+        "TileSliding.INITIAL = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0]\n",
+        "ret, cost = BestFirstSearch(TileSliding, UniformCostF)\n",
+        "print (ret)\n",
+        "sol = Solution(ret)\n",
+        "print (sol)\n",
+        "print (TileSliding.INITIAL)\n",
+        "print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "print (\"Nodes Expanded=\", cost)"
+      ],
+      "execution_count": 230,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0), <none>\n",
+            "[]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Nodes Expanded= 0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "bu6svMo0n9Pc"
+      },
+      "source": [
+        "# Problem 2"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rXzEVLYEn8m1",
+        "outputId": "60959541-f900-4f07-dc91-d88a9ba97f3f"
+      },
+      "source": [
+        "state1, sol = RandomWalk(GoalState, 300)\n",
+        "PrintState(state1)\n",
+        "print (sol)\n",
+        "print(ReverseMoves(sol))\n",
+        "PrintState (ApplyMoves(ReverseMoves(sol), state1))"
+      ],
+      "execution_count": 231,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[3, 15, 4, 8]\n",
+            "[1, 5, 13, 12]\n",
+            "[10, 11, 0, 7]\n",
+            "[9, 6, 2, 14]\n",
+            "['l', 'l', 'u', 'l', 'd', 'r', 'r', 'r', 'u', 'l', 'd', 'l', 'u', 'r', 'd', 'r', 'u', 'l', 'u', 'r', 'd', 'l', 'l', 'u', 'l', 'd', 'd', 'r', 'u', 'r', 'r', 'd', 'l', 'l', 'u', 'l', 'd', 'r', 'u', 'r', 'r', 'd', 'l', 'l', 'u', 'u', 'l', 'd', 'r', 'd', 'l', 'u', 'r', 'u', 'u', 'r', 'r', 'd', 'l', 'u', 'r', 'd', 'd', 'l', 'l', 'l', 'd', 'r', 'u', 'r', 'u', 'l', 'l', 'u', 'r', 'd', 'l', 'd', 'd', 'r', 'u', 'u', 'r', 'u', 'r', 'd', 'd', 'l', 'l', 'd', 'r', 'r', 'u', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'u', 'l', 'l', 'd', 'r', 'u', 'r', 'u', 'r', 'd', 'd', 'l', 'd', 'l', 'u', 'l', 'd', 'r', 'r', 'r', 'u', 'l', 'd', 'r', 'u', 'l', 'u', 'l', 'l', 'd', 'r', 'd', 'r', 'r', 'u', 'u', 'l', 'u', 'r', 'd', 'l', 'd', 'd', 'r', 'u', 'l', 'l', 'l', 'u', 'r', 'd', 'l', 'u', 'u', 'r', 'd', 'r', 'u', 'l', 'd', 'd', 'l', 'd', 'r', 'r', 'r', 'u', 'u', 'l', 'd', 'l', 'u', 'u', 'l', 'd', 'r', 'u', 'r', 'd', 'd', 'd', 'l', 'u', 'u', 'u', 'r', 'd', 'd', 'r', 'u', 'l', 'l', 'l', 'd', 'r', 'r', 'u', 'l', 'u', 'l', 'd', 'd', 'r', 'r', 'r', 'd', 'l', 'u', 'l', 'd', 'r', 'u', 'u', 'r', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'd', 'r', 'u', 'l', 'u', 'r', 'd', 'd', 'd', 'l', 'l', 'l', 'u', 'u', 'u', 'r', 'd', 'r', 'u', 'l', 'l', 'd', 'd', 'r', 'd', 'l', 'u', 'r', 'd', 'r', 'u', 'l', 'd', 'l', 'u', 'u', 'r', 'd', 'l', 'u', 'u', 'r', 'r', 'd', 'l', 'u', 'r', 'r', 'd', 'l', 'd', 'r', 'd', 'l', 'u', 'u', 'r', 'd', 'l', 'u', 'r', 'd', 'l', 'd', 'l', 'u', 'l', 'd', 'r', 'u', 'u', 'l', 'd', 'r', 'r', 'd', 'r', 'u', 'l']\n",
+            "['r', 'd', 'l', 'u', 'l', 'l', 'u', 'r', 'd', 'd', 'l', 'u', 'r', 'd', 'r', 'u', 'r', 'u', 'l', 'd', 'r', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'u', 'r', 'u', 'l', 'l', 'd', 'r', 'u', 'l', 'l', 'd', 'd', 'r', 'u', 'l', 'd', 'd', 'r', 'u', 'r', 'd', 'l', 'u', 'l', 'd', 'r', 'u', 'l', 'u', 'u', 'r', 'r', 'd', 'l', 'u', 'l', 'd', 'd', 'd', 'r', 'r', 'r', 'u', 'u', 'u', 'l', 'd', 'r', 'd', 'l', 'u', 'r', 'd', 'l', 'u', 'u', 'r', 'd', 'l', 'd', 'd', 'l', 'u', 'r', 'd', 'r', 'u', 'l', 'l', 'l', 'u', 'u', 'r', 'd', 'r', 'd', 'l', 'l', 'u', 'r', 'r', 'r', 'd', 'l', 'u', 'u', 'l', 'd', 'd', 'd', 'r', 'u', 'u', 'u', 'l', 'd', 'l', 'u', 'r', 'd', 'd', 'r', 'u', 'r', 'd', 'd', 'l', 'l', 'l', 'u', 'r', 'u', 'u', 'r', 'd', 'l', 'u', 'l', 'd', 'd', 'r', 'u', 'l', 'd', 'r', 'r', 'r', 'd', 'l', 'u', 'u', 'r', 'u', 'l', 'd', 'r', 'd', 'd', 'l', 'l', 'u', 'l', 'u', 'r', 'r', 'd', 'r', 'd', 'l', 'u', 'r', 'd', 'l', 'l', 'l', 'u', 'r', 'd', 'r', 'u', 'r', 'u', 'u', 'l', 'd', 'l', 'd', 'l', 'u', 'r', 'r', 'd', 'r', 'd', 'l', 'u', 'u', 'r', 'd', 'd', 'l', 'l', 'u', 'r', 'r', 'u', 'u', 'l', 'd', 'l', 'd', 'd', 'l', 'u', 'u', 'r', 'u', 'l', 'd', 'r', 'r', 'd', 'l', 'd', 'l', 'u', 'r', 'r', 'r', 'u', 'u', 'l', 'd', 'r', 'u', 'l', 'l', 'd', 'd', 'l', 'd', 'r', 'u', 'l', 'u', 'r', 'd', 'd', 'r', 'r', 'u', 'l', 'l', 'd', 'l', 'u', 'r', 'd', 'r', 'r', 'u', 'l', 'l', 'd', 'l', 'u', 'u', 'r', 'd', 'r', 'r', 'u', 'l', 'd', 'r', 'd', 'l', 'u', 'l', 'd', 'r', 'u', 'r', 'd', 'l', 'l', 'l', 'u', 'r', 'd', 'r', 'r']\n",
+            "[1, 2, 3, 4]\n",
+            "[5, 6, 7, 8]\n",
+            "[9, 10, 11, 12]\n",
+            "[13, 14, 15, 0]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "tKnMcesqoCss",
+        "outputId": "b0bbb0b0-bba6-423b-bf30-50ca8ae3387a"
+      },
+      "source": [
+        "TileSliding.INITIAL = state1\n",
+        "ret, cost = BreadthFirstSearch(TileSliding)\n",
+        "print(ret)\n",
+        "if ret is None:\n",
+        "    print(\"No solution found!\")\n",
+        "else:\n",
+        "    sol = Solution(ret)\n",
+        "    print(sol)\n",
+        "    print(TileSliding.INITIAL)\n",
+        "    print(ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "    print(\"Length of solution: \", len(sol))\n",
+        "    print(\"Nodes Expanded=\", cost)"
+      ],
+      "execution_count": 232,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "None\n",
+            "No solution found!\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "k24bl418eL5m",
+        "outputId": "4bee7041-9e72-4239-bf20-a3e53755fe09"
+      },
+      "source": [
+        "UniformCostF = lambda n: n.PathCost\n",
+        "TileSliding.INITIAL = state1\n",
+        "ret, cost = BestFirstSearch(TileSliding, UniformCostF)\n",
+        "\n",
+        "if ret is None:\n",
+        "    print(f\"No solution found (expanded {cost} nodes)\")\n",
+        "else:\n",
+        "    print(ret)\n",
+        "    sol = Solution(ret)\n",
+        "    print(sol)\n",
+        "    print(TileSliding.INITIAL)\n",
+        "    print(ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "    print(\"Length of solution:\", len(sol))\n",
+        "    print(\"Nodes Expanded=\", cost)"
+      ],
+      "execution_count": 233,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "No solution found (expanded 500001 nodes)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "tdtWdXGlXFGG"
+      },
+      "source": [
+        "# Problem List"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "iDhmyFXQXI3N",
+        "outputId": "92434d58-9146-40fa-a350-4a291b5d60f4"
+      },
+      "source": [
+        "findNum = 10\n",
+        "randomWalkDistance = 300\n",
+        "problemList = []\n",
+        "for i in range(10):\n",
+        "  state1, sol = RandomWalk(GoalState, 300)\n",
+        "  problemList.append(state1)\n",
+        "print (problemList)"
+      ],
+      "execution_count": 234,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[[4, 5, 2, 14, 6, 11, 15, 0, 13, 12, 9, 8, 10, 1, 3, 7], [5, 14, 7, 3, 15, 1, 10, 0, 11, 8, 13, 12, 9, 6, 2, 4], [2, 3, 11, 10, 8, 7, 12, 15, 0, 5, 9, 6, 4, 14, 13, 1], [5, 7, 14, 6, 1, 2, 11, 8, 13, 10, 0, 4, 15, 12, 3, 9], [0, 3, 2, 13, 15, 1, 8, 9, 6, 11, 5, 12, 7, 10, 14, 4], [10, 5, 14, 12, 13, 7, 6, 1, 2, 9, 15, 8, 4, 11, 3, 0], [7, 12, 0, 3, 11, 10, 1, 9, 5, 14, 15, 6, 13, 2, 4, 8], [6, 1, 13, 4, 10, 2, 9, 12, 7, 5, 15, 11, 14, 8, 3, 0], [12, 6, 10, 5, 2, 14, 8, 9, 0, 13, 11, 3, 4, 1, 15, 7], [0, 1, 8, 11, 14, 5, 6, 9, 10, 2, 13, 7, 4, 15, 3, 12]]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "TpdrxwA8UvFn"
+      },
+      "source": [
+        "### Breadth First Search w/ Test Problems"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "xrni2RRIXkfU",
+        "outputId": "7bef6551-f2d6-40f7-ec5d-fe5fdc2cf932"
+      },
+      "source": [
+        "\n",
+        "testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15]\n",
+        "]\n",
+        "\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BreadthFirstSearch(TileSliding)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 235,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 0\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 0\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 9\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 0), ('1234567891011013141512', 'd', 0), ('1234567890111213101415', 'drr', 9)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YLVN3sTkU0jw"
+      },
+      "source": [
+        "### Uniform Cost Search w/ Test Problems"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "LsWVfbeLRYfO",
+        "outputId": "c83a460a-e4d6-41cb-9895-13d2cd982898"
+      },
+      "source": [
+        "UniformCostF = lambda n: n.PathCost\n",
+        "\n",
+        "testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,6,7,8,0,9,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,0,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [1,0,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [0,1,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,14,0,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,0,14,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12]\n",
+        "]\n",
+        "\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BestFirstSearch(TileSliding, UniformCostF)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 236,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 3\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 2\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 25\n",
+            "-----------------------\n",
+            "['r', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 38\n",
+            "-----------------------\n",
+            "['d', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 0, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 49\n",
+            "-----------------------\n",
+            "['d', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 0, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  5\n",
+            "Nodes Expanded= 57\n",
+            "-----------------------\n",
+            "['r', 'd', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[0, 1, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  6\n",
+            "Nodes Expanded= 141\n",
+            "-----------------------\n",
+            "['l', 'u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 14, 0, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  10\n",
+            "Nodes Expanded= 3241\n",
+            "-----------------------\n",
+            "['u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 0, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  9\n",
+            "Nodes Expanded= 1663\n",
+            "-----------------------\n",
+            "['u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 0, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  8\n",
+            "Nodes Expanded= 665\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 3), ('1234567891011013141512', 'd', 2), ('1234567890111213101415', 'drr', 25), ('1234567809111213101415', 'rdrr', 38), ('1234507896111213101415', 'ddrr', 49), ('1034527896111213101415', 'dddrr', 57), ('0134527896111213101415', 'rdddrr', 141), ('5123967413101181401512', 'luuurrrddd', 3241), ('5123967413101180141512', 'uuurrrddd', 1663), ('5123967401011813141512', 'uurrrddd', 665)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "p8yiFsHoU6sf"
+      },
+      "source": [
+        "### AStar using ManhattanDistance w/ Test Problems"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6VD8LuUJRhxU",
+        "outputId": "9009e860-3ffe-45af-cede-d38e38c09413"
+      },
+      "source": [
+        "AStarFb = lambda n: n.PathCost + Manhattan(n.State, GoalState)\n",
+        "testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,6,7,8,0,9,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,0,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [1,0,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,14,0,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,0,14,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12],\n",
+        "    [0,1,2,3,5,6,7,4,9,10,11,8,13,14,15,12]\n",
+        "]\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BestFirstSearch(TileSliding, AStarF)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 237,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 3\n",
+            "-----------------------\n",
+            "['r', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 0, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 0, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  5\n",
+            "Nodes Expanded= 5\n",
+            "-----------------------\n",
+            "['l', 'u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 14, 0, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  10\n",
+            "Nodes Expanded= 10\n",
+            "-----------------------\n",
+            "['u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 0, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  9\n",
+            "Nodes Expanded= 9\n",
+            "-----------------------\n",
+            "['u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 0, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  8\n",
+            "Nodes Expanded= 8\n",
+            "-----------------------\n",
+            "['r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[0, 1, 2, 3, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  6\n",
+            "Nodes Expanded= 6\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 1), ('1234567891011013141512', 'd', 1), ('1234567890111213101415', 'drr', 3), ('1234567809111213101415', 'rdrr', 4), ('1234507896111213101415', 'ddrr', 4), ('1034527896111213101415', 'dddrr', 5), ('5123967413101181401512', 'luuurrrddd', 10), ('5123967413101180141512', 'uuurrrddd', 9), ('5123967401011813141512', 'uurrrddd', 8), ('0123567491011813141512', 'rrrddd', 6)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "dluzNjyYVBSl"
+      },
+      "source": [
+        "### AStar using OutOfPlace w/ Test Problems"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "m7icYl-JUGbR",
+        "outputId": "efcaa3b5-1a67-4be3-81ed-69a6869002f0"
+      },
+      "source": [
+        "AStarFb = lambda n: n.PathCost + OutOfPlace(n.State, GoalState)\n",
+        "testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,6,7,8,0,9,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,0,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [1,0,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,14,0,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,0,14,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12],\n",
+        "    [0,1,2,3,5,6,7,4,9,10,11,8,13,14,15,12]\n",
+        "]\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BestFirstSearch(TileSliding, AStarFb)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 238,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 3\n",
+            "-----------------------\n",
+            "['r', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 0, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 0, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  5\n",
+            "Nodes Expanded= 5\n",
+            "-----------------------\n",
+            "['l', 'u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 14, 0, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  10\n",
+            "Nodes Expanded= 10\n",
+            "-----------------------\n",
+            "['u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 0, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  9\n",
+            "Nodes Expanded= 9\n",
+            "-----------------------\n",
+            "['u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 0, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  8\n",
+            "Nodes Expanded= 8\n",
+            "-----------------------\n",
+            "['r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[0, 1, 2, 3, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  6\n",
+            "Nodes Expanded= 6\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 1), ('1234567891011013141512', 'd', 1), ('1234567890111213101415', 'drr', 3), ('1234567809111213101415', 'rdrr', 4), ('1234507896111213101415', 'ddrr', 4), ('1034527896111213101415', 'dddrr', 5), ('5123967413101181401512', 'luuurrrddd', 10), ('5123967413101180141512', 'uuurrrddd', 9), ('5123967401011813141512', 'uurrrddd', 8), ('0123567491011813141512', 'rrrddd', 6)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "TEBWJx6DwN-r"
+      },
+      "source": [
+        "### Best First Search -- Greedy"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fI27-Y5ivXdw",
+        "outputId": "16260202-49fd-44c6-c0ae-6af348a52280"
+      },
+      "source": [
+        "### Best First\n",
+        "bestFirstSearchf = lambda n: OutOfPlace(n.State, GoalState)\n",
+        "testProblems = testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,6,7,8,0,9,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,0,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [1,0,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,14,0,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,0,14,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12],\n",
+        "    [0,1,2,3,5,6,7,4,9,10,11,8,13,14,15,12]\n",
+        "]\n",
+        "\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BestFirstSearch(TileSliding, bestFirstSearchf)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 239,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 3\n",
+            "-----------------------\n",
+            "['r', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 0, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 0, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  5\n",
+            "Nodes Expanded= 5\n",
+            "-----------------------\n",
+            "['l', 'u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 14, 0, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  10\n",
+            "Nodes Expanded= 10\n",
+            "-----------------------\n",
+            "['u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 0, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  9\n",
+            "Nodes Expanded= 9\n",
+            "-----------------------\n",
+            "['u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 0, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  8\n",
+            "Nodes Expanded= 8\n",
+            "-----------------------\n",
+            "['r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[0, 1, 2, 3, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  6\n",
+            "Nodes Expanded= 6\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 1), ('1234567891011013141512', 'd', 1), ('1234567890111213101415', 'drr', 3), ('1234567809111213101415', 'rdrr', 4), ('1234507896111213101415', 'ddrr', 4), ('1034527896111213101415', 'dddrr', 5), ('5123967413101181401512', 'luuurrrddd', 10), ('5123967413101180141512', 'uuurrrddd', 9), ('5123967401011813141512', 'uurrrddd', 8), ('0123567491011813141512', 'rrrddd', 6)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rQw9QKTCMvBY",
+        "outputId": "bad8cb34-cb02-4460-aab8-1ada5ba27de6"
+      },
+      "source": [
+        "### Best First\n",
+        "bestFirstSearchf = lambda n: ManhattanDistance(n.State, GoalState)\n",
+        "testProblems = [\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],\n",
+        "    [1,2,3,4,5,6,7,8,9,10,11,0,13,14,15,12],\n",
+        "    [1,2,3,4,5,6,7,8,9,0,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,6,7,8,0,9,11,12,13,10,14,15],\n",
+        "    [1,2,3,4,5,0,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [1,0,3,4,5,2,7,8,9,6,11,12,13,10,14,15],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,14,0,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,13,10,11,8,0,14,15,12],\n",
+        "    [5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12],\n",
+        "    [0,1,2,3,5,6,7,4,9,10,11,8,13,14,15,12]\n",
+        "]\n",
+        "\n",
+        "Solutions = []\n",
+        "for s in testProblems:\n",
+        "  TileSliding.INITIAL = s\n",
+        "  ret, cost = BestFirstSearch(TileSliding, bestFirstSearchf)\n",
+        "  sol = Solution(ret)\n",
+        "  print (sol)\n",
+        "  print (\"-----------------------\")\n",
+        "  print (TileSliding.INITIAL,'\\n')\n",
+        "  print (ApplyMoves(sol, TileSliding.INITIAL))\n",
+        "  print (\"Length of solution: \", len(sol))\n",
+        "  print (\"Nodes Expanded=\", cost)\n",
+        "  print (\"-----------------------\")\n",
+        "  Solutions.append((''.join(map(str, s)), ''.join(sol), cost))\n",
+        "print (\"-------\")\n",
+        "print (Solutions)"
+      ],
+      "execution_count": 240,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  1\n",
+            "Nodes Expanded= 1\n",
+            "-----------------------\n",
+            "['d', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  3\n",
+            "Nodes Expanded= 3\n",
+            "-----------------------\n",
+            "['r', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 2, 3, 4, 5, 0, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  4\n",
+            "Nodes Expanded= 4\n",
+            "-----------------------\n",
+            "['d', 'd', 'd', 'r', 'r']\n",
+            "-----------------------\n",
+            "[1, 0, 3, 4, 5, 2, 7, 8, 9, 6, 11, 12, 13, 10, 14, 15] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  5\n",
+            "Nodes Expanded= 5\n",
+            "-----------------------\n",
+            "['l', 'u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 14, 0, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  10\n",
+            "Nodes Expanded= 10\n",
+            "-----------------------\n",
+            "['u', 'u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 13, 10, 11, 8, 0, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  9\n",
+            "Nodes Expanded= 9\n",
+            "-----------------------\n",
+            "['u', 'u', 'r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[5, 1, 2, 3, 9, 6, 7, 4, 0, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  8\n",
+            "Nodes Expanded= 8\n",
+            "-----------------------\n",
+            "['r', 'r', 'r', 'd', 'd', 'd']\n",
+            "-----------------------\n",
+            "[0, 1, 2, 3, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12] \n",
+            "\n",
+            "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]\n",
+            "Length of solution:  6\n",
+            "Nodes Expanded= 6\n",
+            "-----------------------\n",
+            "-------\n",
+            "[('1234567891011121314015', 'r', 1), ('1234567891011013141512', 'd', 1), ('1234567890111213101415', 'drr', 3), ('1234567809111213101415', 'rdrr', 4), ('1234507896111213101415', 'ddrr', 4), ('1034527896111213101415', 'dddrr', 5), ('5123967413101181401512', 'luuurrrddd', 10), ('5123967413101180141512', 'uuurrrddd', 9), ('5123967401011813141512', 'uurrrddd', 8), ('0123567491011813141512', 'rrrddd', 6)]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "TFLhS5QmxRz2"
+      },
+      "source": [
+        "# Domain 2"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PqDD8fsrxXK7"
+      },
+      "source": [
+        "VectorWorldDim = 10\n",
+        "VectorWorld = Problem()\n",
+        "VectorWorld.INITIAL = [0]\n",
+        "VectorWorld.IsGoal = lambda s: s==[3,] or s==(3,)\n",
+        "VectorWorld.Actions = lambda s: ['Left', 'Right']\n",
+        "## TileSliding.Result=VectorWorldResult\n",
+        "VectorWorld.ActionCost = lambda s, a, sPrime: 1"
+      ],
+      "execution_count": 249,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "uWNR8AQJyCN7"
+      },
+      "source": [
+        "def VectorWorldResult(state, action):\n",
+        "  if action=='Left':\n",
+        "    return [(state[0]+VectorWorldDim-1)%VectorWorldDim]\n",
+        "  else:\n",
+        "    return [(state[0]+1)%VectorWorldDim]\n",
+        "VectorWorld.Result=VectorWorldResult\n"
+      ],
+      "execution_count": 242,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Ox26cyPP2xba",
+        "outputId": "56ed2106-2d28-49f8-d7c9-50b3b30d9907"
+      },
+      "source": [
+        "print (VectorWorld.IsGoal((3,)))"
+      ],
+      "execution_count": 243,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "False\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "SBfeM9Vbykci",
+        "outputId": "14622de1-7019-4c9f-df86-cbca0ca29823"
+      },
+      "source": [
+        "ret, cost = BreadthFirstSearch(VectorWorld)\n",
+        "print (\"ret=\", ret)\n",
+        "sol = Solution(ret)\n",
+        "print (sol)\n"
+      ],
+      "execution_count": 244,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "ret= [4], Right\n",
+            "['Right', 'Right', 'Right', 'Right']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "dAbJ75Ym4WmP"
+      },
+      "source": [
+        "VectorWorld.INITIAL = [8]"
+      ],
+      "execution_count": 245,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "QGO1VglP4Zq6",
+        "outputId": "600109c3-5d52-4014-966c-54723cdb7597"
+      },
+      "source": [
+        "ret, cost = BreadthFirstSearch(VectorWorld)\n",
+        "print (\"ret=\", ret)\n",
+        "sol = Solution(ret)\n",
+        "print (sol)"
+      ],
+      "execution_count": 246,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "ret= [4], Left\n",
+            "['Left', 'Left', 'Left', 'Left']\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
