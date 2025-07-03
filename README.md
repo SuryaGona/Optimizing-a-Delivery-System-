@@ -51,7 +51,7 @@ This project helped me:
 
 
 ## 🤝 Feedback  
-I’d love to hear your thoughts! Feel free to open an issue or contact me at [Your Email].  
+I’d love to hear your thoughts! Feel free to open an issue or contact me at suryaharshith.gona@gmail.com
 
 ---
 
