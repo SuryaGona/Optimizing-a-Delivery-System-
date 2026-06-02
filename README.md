@@ -1,59 +1,37 @@
-# Optimizing a Delivery System 🚛  
-Final project for **Data Structures and Algorithms**, showcasing the integration of various data structures and algorithms to optimize delivery routes in a logistics company.  
+# Order Management System 🚛
 
----
+Final project for a Data Structures and Algorithms course focused on implementing and testing custom data structures for managing delivery orders in C++.
 
-## 📋 Objective  
-To design and implement a system that manages and optimizes delivery routes by leveraging:  
-- **Data Structures**: Arrays, linked lists, skip lists, and tree-based structures (AVL, binary trees).  
-- **Algorithms**: Sorting, searching, and graph-based algorithms (Dijkstra's, A*).  
+## Objective
 
----
+Designed and implemented a console-based system for storing, searching, updating, and deleting delivery order data using multiple data structure implementations.
 
-## 🛠️ Tools and Technologies  
-- **Programming Language**: C++  
-- **IDE**: [Your preferred IDE, e.g., Visual Studio, CLion]  
-- **Version Control**: Git  
+## Tools & Technologies
 
----
+* C++
+* Object-Oriented Programming
+* Git
 
-## 📊 Key Features  
-1. **Delivery Data Management**:  
-   - Arrays and linked lists for efficient data storage and access.  
-   - Skip lists to prioritize urgent delivery orders.  
+## Key Features
 
-2. **Route Optimization**:  
-   - Graph-based delivery network using adjacency lists.  
-   - Dijkstra’s and A* algorithms to calculate the shortest and most efficient paths.  
+### Order Data Management
 
-3. **Scalability and Performance**:  
-   - Tree-based structures for dynamic sorting and searching.  
-   - Performance analysis of algorithms for large datasets.  
+* Implemented fixed-size array structures for storing and managing delivery orders.
+* Built singly linked list functionality for dynamic order insertion, traversal, and deletion.
+* Developed a skip list implementation to support faster search operations on order records.
 
----
+### Search & Update Operations
 
-## 📂 Project Files  
-- `main.cpp`: Contains the main function and program logic.  
-- `data_structures/`: Directory for custom implementations of arrays, linked lists, skip lists, and trees.  
-- `graph/`: Code for route optimization using graph algorithms.  
-- `data/`: Sample data files for delivery routes and orders.  
+* Created functions for order lookup, modification, and removal using custom search logic.
+* Compared traversal-based and layered search structures to better understand efficiency tradeoffs.
 
+### Testing & Validation
 
----
+* Built test cases for insertion, deletion, updating, and search functionality across multiple data structures.
+* Practiced debugging pointer-based structures and managing dynamic memory allocation in C++.
 
-## 🧠 What I Learned  
-This project helped me:  
-- Strengthen my understanding of C++ and memory management.  
-- Apply data structures and algorithms to real-world problems.  
-- Enhance debugging and performance optimization skills.  
+## What I Learned
 
----
-
-
-## 🤝 Feedback  
-I’d love to hear your thoughts! Feel free to open an issue or contact me at suryaharshith.gona@gmail.com
-
----
-
-## 📜 License  
-This project is open source under the [MIT License](LICENSE).  
+* Strengthened understanding of core data structures and algorithmic thinking.
+* Improved practical experience with pointers, dynamic memory management, and object-oriented programming in C++.
+* Learned how different data structures affect search and update efficiency in real-world-style systems.
